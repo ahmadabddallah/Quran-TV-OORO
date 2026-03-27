@@ -33,6 +33,7 @@ vi /data/ooro/homeScreenApps.json
 ```
 
 #### Add the following JSON object into the homeScreenApps.json file:
+```
   {
                     "appName": "OORO Quran Kareem",
                     "url": "https://ahmadabddallah.github.io/Quran-TV-OORO/",
@@ -41,3 +42,4 @@ vi /data/ooro/homeScreenApps.json
                     "res_x": 1280,
                     "res_y": 720
   }
+```
