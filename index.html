@@ -1,0 +1,665 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Holy Quran TV</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      background: #070a0f;
+      color: #eaf0ff;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    }
+
+    header {
+      padding: 2vh 3vw 1vh;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 4vh;
+      letter-spacing: 0.02em;
+      font-weight: 700;
+    }
+
+    main {
+      height: calc(100vh - 20vh);
+      /* Adjusted to make room for control bar */
+      padding: 2vh 3vw;
+      overflow: hidden;
+      display: flex;
+      gap: 2vw;
+    }
+
+    .list {
+      height: 100%;
+      overflow: auto;
+      padding-right: 1vw;
+    }
+
+    .pane {
+      height: 100%;
+      min-height: 0;
+    }
+
+    .paneLeft {
+      width: 32vw;
+      max-width: 520px;
+      display: flex;
+      flex-direction: column;
+      gap: 1.2vh;
+    }
+
+    .paneRight {
+      flex: 1 1 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1.2vh;
+      min-width: 0;
+    }
+
+    .sectionHeader {
+      margin: 0;
+      padding: 1.2vh 1.2vw;
+      border-radius: 1vh;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 2.2vh;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .focusable {
+      display: block;
+      width: 100%;
+      text-align: left;
+      padding: 2vh 2.5vw;
+      margin: 0 0 1.2vh 0;
+      border-radius: 1vh;
+      border: 2px solid transparent;
+      background: rgba(255, 255, 255, 0.04);
+      color: #eaf0ff;
+      font-size: 2.5vh;
+      line-height: 1.2;
+      outline: none;
+      cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    .focusable:focus {
+      border-color: #ffd400;
+      background: rgba(255, 212, 0, 0.12);
+      box-shadow: 0 0 0.8vh rgba(255, 212, 0, 0.55);
+    }
+
+    .selected-surah {
+      border-color: rgba(0, 255, 255, 0.8);
+      background: rgba(0, 255, 255, 0.12);
+      box-shadow: 0 0 0.8vh rgba(0, 255, 255, 0.25);
+    }
+
+    .sub {
+      opacity: 0.8;
+      font-size: 1.8vh;
+      margin-top: 0.4vh;
+      display: block;
+    }
+
+    .statusBar {
+      margin-top: 2vh;
+      padding: 1.5vh 2vw;
+      border-radius: 1vh;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 2vh;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .readingArea {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: auto;
+      padding: 1.6vh 1.6vw;
+      border-radius: 1vh;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .ayahBtn {
+      display: inline;
+      width: auto;
+      margin: 0;
+      padding: 0.5vh 0.7vw;
+      border-radius: 0.9vh;
+      background: transparent;
+      border: 2px solid transparent;
+      text-align: right;
+      font-size: 3.1vh;
+      line-height: 1.9;
+      direction: rtl;
+      unicode-bidi: plaintext;
+    }
+
+    .ayahBtn:focus {
+      border-color: #ffd400;
+      background: rgba(255, 212, 0, 0.12);
+      box-shadow: 0 0 0.8vh rgba(255, 212, 0, 0.35);
+    }
+
+    .active-verse {
+      background: rgba(0, 255, 255, 0.18);
+      border-color: rgba(0, 255, 255, 0.85);
+      box-shadow: 0 0 0.8vh rgba(0, 255, 255, 0.25);
+    }
+
+    .audio-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* Media Control Bar */
+    .controls-container {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 12vh;
+      background: rgba(7, 10, 15, 0.98);
+      border-top: 1px solid rgba(255, 255, 255, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 3vw;
+      padding: 0 3vw;
+      z-index: 100;
+    }
+
+    .controls-container .focusable {
+      width: auto;
+      min-width: 15vw;
+      margin: 0;
+      padding: 1.5vh 3vw;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    #play-pause-btn {
+      background: rgba(255, 212, 0, 0.1);
+      border-color: rgba(255, 212, 0, 0.3);
+    }
+
+    #stop-btn {
+      background: rgba(255, 80, 80, 0.1);
+      border-color: rgba(255, 80, 80, 0.3);
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>Holy Quran TV</h1>
+  </header>
+
+  <main>
+    <div class="pane paneLeft">
+      <div class="sectionHeader">Surahs</div>
+      <div class="list" id="surahList" aria-label="Surahs"></div>
+    </div>
+
+    <div class="pane paneRight">
+      <div class="sectionHeader" id="readingTitle">Reading Area</div>
+      <div class="readingArea" id="readingArea" dir="rtl" aria-label="Reading Area"></div>
+      <div id="nowPlaying" class="statusBar" aria-live="polite">Idle - select a surah and press Enter</div>
+      <audio id="player" class="audio-hidden" preload="none"></audio>
+    </div>
+  </main>
+
+  <div class="controls-container">
+    <button id="play-pause-btn" class="focusable" type="button">Play</button>
+    <button id="stop-btn" class="focusable" type="button">Stop</button>
+  </div>
+
+  <script>
+    const SURAH_LIST_URL = 'https://www.mp3quran.net/api/v3/suwar?language=ar';
+
+    // Quran.com APIs used for verse text + verse timestamps (sync).
+    const QURAN_VERSES_UTHMANI_URL = 'https://api.quran.com/api/v4/quran/verses/uthmani?chapter_number=';
+    // Chapter audio file + timestamps (ms) from Quran.com.
+    // Example: https://api.quran.com/api/v4/chapter_recitations/7/1?segments=true
+    const QURAN_CHAPTER_RECITATION_BASE = 'https://api.quran.com/api/v4/chapter_recitations/';
+    const DEFAULT_RECITATION_ID = 7; // Mishari Al-Afasy (commonly available)
+
+    const listEl = document.getElementById('surahList');
+    const nowPlayingEl = document.getElementById('nowPlaying');
+    const audioEl = document.getElementById('player');
+    const readingAreaEl = document.getElementById('readingArea');
+    const readingTitleEl = document.getElementById('readingTitle');
+    const playPauseBtn = document.getElementById('play-pause-btn');
+    const stopBtn = document.getElementById('stop-btn');
+
+    let activeVerseEl = null;
+    let timestampsMs = []; // [{ verse_key, fromMs, toMs }]
+    let currentSurahId = null;
+    let lastActiveIndex = -1;
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function pad3(n) {
+      return ('000' + String(n)).slice(-3);
+    }
+
+    function renderSurahs(suwar) {
+      listEl.textContent = '';
+      const frag = document.createDocumentFragment();
+
+      for (const s of suwar) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'focusable';
+        btn.tabIndex = 0;
+        btn.setAttribute('aria-label', 'Select surah ' + s.id);
+        btn.dataset.surahId = String(s.id);
+        btn.dataset.kind = 'surah';
+
+        btn.innerHTML =
+          '<strong>' + escapeHtml(s.name) + '</strong>' +
+          '<span class="sub">Surah ' + s.id + '</span>';
+
+        frag.appendChild(btn);
+      }
+
+      listEl.appendChild(frag);
+    }
+
+    function markSelectedSurah(surahId) {
+      const all = listEl.querySelectorAll('[data-kind="surah"]');
+      for (const el of all) el.classList.remove('selected-surah');
+      const selected = listEl.querySelector('[data-kind="surah"][data-surah-id="' + surahId + '"]');
+      if (selected) selected.classList.add('selected-surah');
+    }
+
+    function focusFirstVerse() {
+      const firstVerse = readingAreaEl.querySelector('[data-kind="verse"]');
+      if (firstVerse && firstVerse.focus) firstVerse.focus();
+    }
+
+    function focusSelectedSurah() {
+      const selected = listEl.querySelector('.selected-surah');
+      if (selected && selected.focus) {
+        selected.focus();
+        return;
+      }
+      const firstSurah = listEl.querySelector('[data-kind="surah"]');
+      if (firstSurah && firstSurah.focus) firstSurah.focus();
+    }
+
+    function clearReadingArea() {
+      readingAreaEl.textContent = '';
+      timestampsMs = [];
+      currentSurahId = null;
+      lastActiveIndex = -1;
+      if (activeVerseEl) activeVerseEl.classList.remove('active-verse');
+      activeVerseEl = null;
+    }
+
+    function setActiveVerseByIndex(idx) {
+      if (idx < 0 || idx >= timestampsMs.length) return;
+      if (lastActiveIndex === idx) return;
+      lastActiveIndex = idx;
+
+      const verseKey = timestampsMs[idx].verse_key;
+      const verseNum = verseKey.split(':')[1];
+      const el = document.getElementById('v' + verseNum);
+      if (!el) return;
+
+      if (activeVerseEl && activeVerseEl !== el) activeVerseEl.classList.remove('active-verse');
+      activeVerseEl = el;
+      activeVerseEl.classList.add('active-verse');
+
+      // Auto scroll so the active verse stays visible.
+      if (activeVerseEl.scrollIntoView) activeVerseEl.scrollIntoView({ block: 'nearest' });
+    }
+
+    function findActiveTimestampIndex(timeMs) {
+      // Fast path: continue forward from lastActiveIndex.
+      if (timestampsMs.length === 0) return -1;
+      let i = lastActiveIndex >= 0 ? lastActiveIndex : 0;
+
+      // If time is before current, reset search to start.
+      if (i < timestampsMs.length && timeMs < timestampsMs[i].fromMs) i = 0;
+
+      for (; i < timestampsMs.length; i++) {
+        const t = timestampsMs[i];
+        if (timeMs >= t.fromMs && timeMs < t.toMs) return i;
+        if (timeMs < t.fromMs) return -1;
+      }
+      return -1;
+    }
+
+    function playSurahAudio(url) {
+      if (!audioEl || !url) return;
+      audioEl.pause();
+      audioEl.src = url;
+      audioEl.currentTime = 0;
+      audioEl.play().catch((err) => console.warn('Audio play() failed:', err));
+    }
+
+    function seekToVerse(verseKey) {
+      if (!audioEl || !timestampsMs.length) return;
+      const t = timestampsMs.find((x) => x.verse_key === verseKey);
+      if (!t) return;
+      audioEl.currentTime = t.fromMs / 1000;
+      audioEl.play().catch(() => { });
+    }
+
+    async function loadSurahWithSync(surahId, surahName) {
+      clearReadingArea();
+      currentSurahId = surahId;
+      markSelectedSurah(surahId);
+      readingTitleEl.textContent = 'Surah ' + surahId + ' - ' + (surahName || '');
+      nowPlayingEl.textContent = 'Loading Surah ' + surahId + '...';
+
+      try {
+        const [versesRes, audioRes] = await Promise.all([
+          fetch(QURAN_VERSES_UTHMANI_URL + surahId),
+          fetch(QURAN_CHAPTER_RECITATION_BASE + DEFAULT_RECITATION_ID + '/' + surahId + '?segments=true')
+        ]);
+
+        const versesJson = await versesRes.json();
+        const audioJson = await audioRes.json();
+
+        const verses = versesJson && versesJson.verses ? versesJson.verses : [];
+        const audioFile = audioJson && audioJson.audio_file ? audioJson.audio_file : null;
+        const ts = audioFile && audioFile.timestamps ? audioFile.timestamps : [];
+        const audioUrl = audioFile && audioFile.audio_url ? audioFile.audio_url : '';
+
+        if (!verses.length || !audioUrl || !ts.length) throw new Error('Missing verses/audio/timestamps');
+
+        // Build timestamps array (ms) for quick lookup.
+        timestampsMs = ts.map((x) => ({
+          verse_key: x.verse_key,
+          fromMs: Number(x.timestamp_from || 0),
+          toMs: Number(x.timestamp_to || 0)
+        })).filter((x) => x.toMs > x.fromMs);
+
+        // Render verses as focusable buttons so TV users can navigate and seek.
+        const frag = document.createDocumentFragment();
+        for (const v of verses) {
+          const verseKey = v.verse_key; // e.g., "2:255"
+          const verseNum = verseKey.split(':')[1];
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'focusable ayahBtn';
+          btn.tabIndex = 0;
+          btn.id = 'v' + verseNum; // required by your spec
+          btn.dataset.kind = 'verse';
+          btn.dataset.verseKey = verseKey;
+          btn.setAttribute('aria-label', 'Ayah ' + verseNum);
+          btn.innerHTML = escapeHtml(v.text_uthmani) + ' <span class="sub">(' + verseNum + ')</span>';
+          frag.appendChild(btn);
+          frag.appendChild(document.createTextNode(' '));
+        }
+        readingAreaEl.appendChild(frag);
+
+        // Start audio and reset highlight state.
+        lastActiveIndex = -1;
+        nowPlayingEl.textContent = 'Playing Surah ' + surahId;
+        playSurahAudio(audioUrl);
+        // TV UX: jump focus into reading area immediately.
+        focusFirstVerse();
+      } catch (err) {
+        console.error('Failed to load surah:', err);
+        nowPlayingEl.textContent = 'Error loading Surah ' + surahId;
+        readingTitleEl.textContent = 'Reading Area';
+        readingAreaEl.textContent = 'Failed to load verses/audio.';
+      }
+    }
+
+    function togglePlayPause() {
+      if (!audioEl || !audioEl.src) return;
+      if (audioEl.paused) {
+        audioEl.play().then(() => {
+          nowPlayingEl.textContent = 'Playing';
+          if (playPauseBtn) playPauseBtn.textContent = 'Pause';
+        })
+          .catch((err) => console.warn('Audio play() failed:', err));
+      } else {
+        audioEl.pause();
+        nowPlayingEl.textContent = 'Paused';
+        if (playPauseBtn) playPauseBtn.textContent = 'Play';
+      }
+    }
+
+    function handleStop() {
+      if (!audioEl) return;
+      audioEl.pause();
+      audioEl.currentTime = 0;
+      nowPlayingEl.textContent = 'Stopped';
+      if (playPauseBtn) playPauseBtn.textContent = 'Play';
+      // If we have an active verse segment, clear the highlight?
+      // lastActiveIndex = -1;
+    }
+
+    let spatialNavInitialized = false;
+    function initSpatialNavigation() {
+      if (spatialNavInitialized) return;
+      spatialNavInitialized = true;
+
+      document.addEventListener('keydown', (e) => {
+        const key = e.key;
+        const isPlayPause =
+          key === 'MediaPlayPause' ||
+          e.code === 'MediaPlayPause' ||
+          key === ' ' ||
+          key === 'Spacebar' ||
+          key === 'Space';
+
+        const isStop = key === 'MediaStop' || e.code === 'MediaStop';
+
+        const focusables = Array.prototype.slice.call(document.querySelectorAll('.focusable'));
+        if (!focusables.length) return;
+
+        const activeEl = document.activeElement;
+        let currentIndex = focusables.indexOf(activeEl);
+        if (currentIndex < 0) currentIndex = 0;
+
+        function move(delta) {
+          currentIndex = (currentIndex + delta + focusables.length) % focusables.length;
+          const el = focusables[currentIndex];
+          if (el) el.focus();
+          if (el && el.scrollIntoView) el.scrollIntoView({ block: 'nearest' });
+        }
+
+        if (isPlayPause) {
+          e.preventDefault();
+          togglePlayPause();
+          return;
+        }
+
+        if (isStop) {
+          e.preventDefault();
+          handleStop();
+          return;
+        }
+
+        if (key === 'ArrowUp') {
+          e.preventDefault();
+          // If at the controls and pressing Up, go back to previous logical area.
+          if (activeEl && (activeEl.id === 'play-pause-btn' || activeEl.id === 'stop-btn')) {
+            focusSelectedSurah();
+            return;
+          }
+          // TV shortcut: Loop Surah list from top to bottom.
+          if (activeEl && activeEl.dataset.kind === 'surah') {
+            const surahs = listEl.querySelectorAll('[data-kind="surah"]');
+            if (activeEl === surahs[0]) {
+              if (surahs.length > 0) {
+                surahs[surahs.length - 1].focus();
+                return;
+              }
+            }
+          }
+          move(-1);
+          return;
+        }
+
+        if (key === 'ArrowDown') {
+          e.preventDefault();
+          // If in Surah list, go to next surah; if at end of list, go to controls.
+          if (activeEl && activeEl.dataset.kind === 'surah') {
+            const nextEl = focusables[currentIndex + 1];
+            if (nextEl && nextEl.dataset.kind === 'surah') {
+              move(1);
+            } else {
+              if (playPauseBtn) playPauseBtn.focus();
+            }
+          }
+          // If in Verse area, go to next verse; if at end, go to controls.
+          else if (activeEl && activeEl.dataset.kind === 'verse') {
+            const nextEl = focusables[currentIndex + 1];
+            if (nextEl && nextEl.dataset.kind === 'verse') {
+              move(1);
+            } else {
+              if (playPauseBtn) playPauseBtn.focus();
+            }
+          } else {
+            move(1);
+          }
+          return;
+        }
+        if (key === 'ArrowRight') {
+          // TV shortcut: move from Surah list to verses.
+          if (activeEl && activeEl.dataset.kind === 'surah') {
+            e.preventDefault();
+            focusFirstVerse();
+            return;
+          }
+          // TV shortcut: move from Play to Stop.
+          if (activeEl && activeEl.id === 'play-pause-btn') {
+            e.preventDefault();
+            const stop = document.getElementById('stop-btn');
+            if (stop) stop.focus();
+            return;
+          }
+          // TV shortcut: move from Stop back to Surah list.
+          if (activeEl && activeEl.id === 'stop-btn') {
+            e.preventDefault();
+            focusSelectedSurah();
+            return;
+          }
+        }
+        if (key === 'ArrowLeft') {
+          // TV shortcut: move from verses back to selected Surah.
+          if (activeEl && activeEl.dataset.kind === 'verse') {
+            e.preventDefault();
+            focusSelectedSurah();
+            return;
+          }
+          // TV shortcut: move from Surah list to controls.
+          if (activeEl && activeEl.dataset.kind === 'surah') {
+            e.preventDefault();
+            const play = document.getElementById('play-pause-btn');
+            if (play) play.focus();
+            return;
+          }
+          // TV shortcut: move from Stop to Play.
+          if (activeEl && activeEl.id === 'stop-btn') {
+            e.preventDefault();
+            const play = document.getElementById('play-pause-btn');
+            if (play) play.focus();
+            return;
+          }
+        }
+        if (key === 'Enter') {
+          e.preventDefault();
+          if (!activeEl || !activeEl.dataset) return;
+          if (activeEl.dataset.kind === 'surah') {
+            const sid = Number(activeEl.dataset.surahId);
+            const label = activeEl.textContent || '';
+            loadSurahWithSync(sid, label.trim());
+          } else if (activeEl.dataset.kind === 'verse') {
+            seekToVerse(activeEl.dataset.verseKey);
+          } else if (activeEl.id === 'play-pause-btn') {
+            togglePlayPause();
+          } else if (activeEl.id === 'stop-btn') {
+            handleStop();
+          }
+        }
+      });
+
+      // Click support (mouse/touch/emulator) for verses/surahs.
+      document.addEventListener('click', (e) => {
+        const t = e.target && e.target.closest ? e.target.closest('.focusable') : null;
+        if (!t) return;
+        if (t.dataset && t.dataset.kind === 'surah') {
+          loadSurahWithSync(Number(t.dataset.surahId), (t.textContent || '').trim());
+        } else if (t.dataset && t.dataset.kind === 'verse') {
+          seekToVerse(t.dataset.verseKey);
+        } else if (t.id === 'play-pause-btn') {
+          togglePlayPause();
+        } else if (t.id === 'stop-btn') {
+          handleStop();
+        }
+      });
+    }
+
+    async function loadAndRender() {
+      listEl.textContent = 'Loading...';
+      nowPlayingEl.textContent = 'Loading Surahs...';
+
+      try {
+        const surahRes = await fetch(SURAH_LIST_URL);
+        const suwarJson = await surahRes.json();
+
+        const suwar = suwarJson && suwarJson.suwar ? suwarJson.suwar : [];
+
+        if (!suwar.length) throw new Error('Missing data');
+        renderSurahs(suwar);
+        initSpatialNavigation();
+        nowPlayingEl.textContent = 'Select a surah and press Enter';
+      } catch (err) {
+        console.error('Failed to load:', err);
+        listEl.textContent = 'Failed to load Surahs';
+        nowPlayingEl.textContent = 'Error loading data';
+      }
+    }
+
+    // Verse highlighting based on Quran.com timestamps.
+    audioEl.addEventListener('timeupdate', () => {
+      if (!timestampsMs.length) return;
+      const idx = findActiveTimestampIndex(audioEl.currentTime * 1000);
+      if (idx >= 0) setActiveVerseByIndex(idx);
+    });
+
+    loadAndRender();
+  </script>
+</body>
+
+</html>
